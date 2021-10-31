@@ -1,0 +1,4 @@
+.DS_Store
+.idea/
+data/*
+train_data.csv

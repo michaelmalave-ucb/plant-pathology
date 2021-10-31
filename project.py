@@ -2,7 +2,6 @@ import time
 import numpy as np
 from csv import reader
 from sklearn.pipeline import Pipeline
-from sklearn.datasets import fetch_openml
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LinearRegression
 from sklearn.naive_bayes import BernoulliNB
@@ -13,8 +12,9 @@ from sklearn.metrics import classification_report
 
 start = time.time()
 print("Starting loading data")
-X = np.loadtxt('train_data.csv', delimiter=',')
-Y = np.loadtxt('data/train.csv', delimiter=',', skiprows=1, usecols=0, dtype=str)
+with open("train_data.csv", 'r') as f:
+  X = np.genfromtxt(f, delimiter=',')
+Y = np.loadtxt('data/train.csv', delimiter=',', skiprows=1, usecols=1, dtype=str)
 print("Finished loading data")
 end = time.time()
 print('Process Complete')
@@ -33,9 +33,6 @@ X, Y = X[shuffle], Y[shuffle]
 # Fractionally distribute subsets of data
 big_size = round(X.shape[0]*0.8)
 small_size = round(X.shape[0]*0.02)
-
-for i in X:
-    print(i)
 
 # Set some variables to hold test, dev, and training data.
 test_data, test_labels = X[big_size:], Y[big_size:]

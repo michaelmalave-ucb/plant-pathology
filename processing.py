@@ -55,3 +55,14 @@ end = time.time()
 print('Process Complete')
 total_time = round(end - start, 2)
 print("Total time was: " + str(total_time) + " seconds.")
+
+start = time.time()
+with open("train_data.csv", 'r') as f:
+    my_data = np.genfromtxt(f, delimiter=',')
+f.close()
+end = time.time()
+total_time = round(end - start, 2)
+print("Loading time was: " + str(total_time) + " seconds.")
+
+print('data type: ', type(my_data))
+print('data shape: ', my_data.shape)

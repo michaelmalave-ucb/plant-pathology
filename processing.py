@@ -48,6 +48,7 @@ for i_list in batch(train_labels, chunk):
         if count % 50 == 0:
             print("Completed items: " + str(count))
         image.close()
+    # This limits to a subset of the data to be added to the file
     if count == 500:
         break
 

@@ -28,13 +28,13 @@ for i_list in batch(train_labels, chunk):
     for i in i_list:
         count += 1
         image = Image.open(img_dir + i)
+        # this should be resizing the files to all the same dimensions
         image.thumbnail(size=(200, 400), resample=1)
         im = np.array(image)
         if im.shape[0] != 134:
             print(str(im.shape[0]) + " " + str(im.shape[1]) + " " + str(im.shape[2]))
         im = list(im.reshape(im.shape[0] * im.shape[1] * im.shape[2]).tolist())
-        """if len(im) != 45:
-            print(len(im))"""
+        # append list as new row to csv
         with open("train_data.csv", "a+") as f:
             write = csv.writer(f)
             write.writerow(im)

@@ -5,6 +5,13 @@ from glob import glob
 from PIL import Image
 
 
+# handle multiple, space delimited labels
+with open('data/train.csv') as infile, open('data/train_labels.csv', 'w') as outfile:
+    for line in infile:
+        outfile.write(" ".join(line.split()).replace(' ', ','))
+        outfile.write("\n")
+
+
 # create batching function
 def batch(iterable, n=1):
     l = len(iterable)
@@ -40,14 +47,14 @@ for i_list in batch(train_labels, chunk):
         else:
             pass
         # show some sample items
-        if count < 5:
-            image.show()
+        """if count < 5:
+            image.show()"""
         # track progress to completion
-        if count % 50 == 0:
+        if count % 100 == 0:
             print("Completed items: " + str(count))
         image.close()
     # This limits to a subset of the data to be added to the file
-    if count == 500:
+    if count == 8000:
         break
 
 
@@ -55,14 +62,3 @@ end = time.time()
 print('Process Complete')
 total_time = round(end - start, 2)
 print("Total time was: " + str(total_time) + " seconds.")
-
-start = time.time()
-with open("train_data.csv", 'r') as f:
-    my_data = np.genfromtxt(f, delimiter=',')
-f.close()
-end = time.time()
-total_time = round(end - start, 2)
-print("Loading time was: " + str(total_time) + " seconds.")
-
-print('data type: ', type(my_data))
-print('data shape: ', my_data.shape)

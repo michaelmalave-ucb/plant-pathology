@@ -14,13 +14,12 @@ start = time.time()
 print("Starting loading data")
 with open("train_data.csv", 'r') as f:
   X = np.genfromtxt(f, delimiter=',')
-Y = np.loadtxt('data/train.csv', delimiter=',', skiprows=1, usecols=1, dtype=str)
+Y = np.loadtxt('data/train_labels.csv', delimiter=',', skiprows=1, usecols=1, dtype=str)
 print("Finished loading data")
 end = time.time()
 print('Process Complete')
 total_time = round(end - start, 2)
 print("Total time loading data was: " + str(total_time) + " seconds.")
-
 
 print('per data shape: ', len(X[0]))
 print('data shape: ', X.shape)

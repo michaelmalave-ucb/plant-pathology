@@ -1,14 +1,15 @@
 import time
 import numpy as np
-from csv import reader
+from sklearn import tree
+from sklearn import metrics
+from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.linear_model import LinearRegression
-from sklearn.naive_bayes import BernoulliNB
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.naive_bayes import GaussianNB
-from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
+
 
 start = time.time()
 print("Starting loading data")
@@ -40,12 +41,11 @@ train_data, train_labels = X[:big_size-small_size], Y[:big_size-small_size]
 mini_train_data, mini_train_labels = X[:small_size], Y[:small_size]
 
 
-def q2(k_values):
+# Produce models for each k value
+def knn_range(k_values):
   for k in k_values:
-    # Produce models for each k value
     if k == k_values[0]:
-      print("1. Producing models for where k={k_values}".format(k_values=k_values))
-      print("2.")
+      print("Producing models for where k={k_values}".format(k_values=k_values))
     knn = KNeighborsClassifier(n_neighbors=k)
     knn.fit(train_data, train_labels)
     # get predictions for dev data to be evaluated
@@ -59,4 +59,54 @@ def q2(k_values):
 
 
 k_vals = [1, 3, 5, 7, 9]
-q2(k_vals)
+knn_range(k_vals)
+
+
+# Produce default svc model
+# takes long to run
+"""clf = SVC(gamma=0.001)
+clf.fit(train_data, train_labels)
+pred = clf.predict(dev_data)
+reg_score = metrics.f1_score(dev_labels, pred, average="weighted")
+print("SVC f1-score is: " + str(reg_score))"""
+
+
+# Produce multinomial naive bayes
+clf = MultinomialNB()
+clf.fit(train_data, train_labels)
+pred = clf.predict(dev_data)
+reg_score = metrics.f1_score(dev_labels, pred, average="weighted")
+print("Multinomial f1-score is: " + str(reg_score))
+
+
+# Produce logistic regression model
+# takes too long to get result (when past 30 min scaled to 50)
+"""clf = LogisticRegression(C=0.01, solver="liblinear", multi_class="auto", max_iter=500)
+clf.fit(train_data, train_labels)
+pred = clf.predict(dev_data)
+reg_score = metrics.f1_score(dev_labels, pred, average="weighted")
+print("Logistic regression f1-score is: " + str(reg_score))"""
+
+
+# Produce decision tree classification
+clf = tree.DecisionTreeClassifier()
+clf.fit(train_data, train_labels)
+pred = clf.predict(dev_data)
+reg_score = metrics.f1_score(dev_labels, pred, average="weighted")
+print("Decision tree f1-score is: " + str(reg_score))
+
+
+# Produce default random forest classifier
+clf = RandomForestClassifier(max_depth=2, random_state=0)
+clf.fit(train_data, train_labels)
+pred = clf.predict(dev_data)
+reg_score = metrics.f1_score(dev_labels, pred, average="weighted")
+print("Decision forest f1-score is: " + str(reg_score))
+
+
+# Produce default adaboost classifier
+clf = AdaBoostClassifier(n_estimators=100, random_state=0)
+clf.fit(train_data, train_labels)
+pred = clf.predict(dev_data)
+reg_score = metrics.f1_score(dev_labels, pred, average="weighted")
+print("Adaboost f1-score is: " + str(reg_score))

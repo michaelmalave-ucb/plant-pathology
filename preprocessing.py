@@ -26,7 +26,9 @@ image_files = glob(img_dir + '*.jpg')
 train_labels = np.loadtxt('data/train.csv', delimiter=',', skiprows=1, usecols=0, dtype=str)
 start = time.time()
 count = 0
-square = 5
+dim = 100
+sample_size = 2000
+
 # get data in the order of the labels
 for i_list in batch(train_labels, chunk):
 
@@ -35,10 +37,12 @@ for i_list in batch(train_labels, chunk):
         count += 1
         image = Image.open(img_dir + i)
         # this should be resizing the files to all the same dimensions
-        image.thumbnail(size=(200, 400), resample=1)
+        image.thumbnail((dim, 2 * dim))
         im = np.array(image)
-        # limiting to only images that fit shape for now
-        if im.shape[0] == 134:
+        # print(im.shape[0])
+        # limiting to only images that fit shape for now - im.shape[0] seems to be the only that varies
+        #  33 for 50, 67 for 100, 134 for 200
+        if im.shape[0] == 67:
             im = list(im.reshape(im.shape[0] * im.shape[1] * im.shape[2]).tolist())
             # append list as new row to csv
             with open("train_data.csv", "a+") as f:
@@ -50,11 +54,11 @@ for i_list in batch(train_labels, chunk):
         """if count < 5:
             image.show()"""
         # track progress to completion
-        if count % 100 == 0:
+        if count % 500 == 0:
             print("Completed items: " + str(count))
         image.close()
     # This limits to a subset of the data to be added to the file
-    if count == 8000:
+    if count == sample_size:
         break
 
 

@@ -66,3 +66,5 @@ end = time.time()
 print('Process Complete')
 total_time = round(end - start, 2)
 print("Total time was: " + str(total_time) + " seconds.")
+
+

@@ -10,10 +10,11 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
 
+prog_start_time = time.time()
 
 start = time.time()
 print("Starting loading data")
-with open("train_data.csv", 'r') as f:
+with open("data/train_data.csv", 'r') as f:
   X = np.genfromtxt(f, delimiter=',')
 Y = np.loadtxt('data/train_labels.csv', delimiter=',', skiprows=1, usecols=1, dtype=str)
 print("Finished loading data")
@@ -34,11 +35,13 @@ X, Y = X[shuffle], Y[shuffle]
 big_size = round(X.shape[0]*0.8)
 small_size = round(X.shape[0]*0.02)
 
+# Normalize pixel values to be between 0 and 1
+X = X/225.0
+
 # Set some variables to hold test, dev, and training data.
 test_data, test_labels = X[big_size:], Y[big_size:]
 dev_data, dev_labels = X[big_size-small_size:big_size], Y[big_size-small_size:big_size]
 train_data, train_labels = X[:big_size-small_size], Y[:big_size-small_size]
-mini_train_data, mini_train_labels = X[:small_size], Y[:small_size]
 
 
 # Produce models for each k value
@@ -89,20 +92,21 @@ print("Logistic regression f1-score is: " + str(reg_score))"""
 
 
 # Produce decision tree classification
-clf = tree.DecisionTreeClassifier()
+# low baseline and might not be worth time spent
+"""clf = tree.DecisionTreeClassifier()
 clf.fit(train_data, train_labels)
 pred = clf.predict(dev_data)
 reg_score = metrics.f1_score(dev_labels, pred, average="weighted")
-print("Decision tree f1-score is: " + str(reg_score))
+print("Decision tree f1-score is: " + str(reg_score))"""
 
 
 # Produce default random forest classifier
-clf = RandomForestClassifier(max_depth=2, random_state=0)
+# low baseline and might not be worth time spent
+"""clf = RandomForestClassifier(max_depth=2, random_state=0)
 clf.fit(train_data, train_labels)
 pred = clf.predict(dev_data)
 reg_score = metrics.f1_score(dev_labels, pred, average="weighted")
-print("Decision forest f1-score is: " + str(reg_score))
-
+print("Decision forest f1-score is: " + str(reg_score))"""
 
 # Produce default adaboost classifier
 clf = AdaBoostClassifier(n_estimators=100, random_state=0)
@@ -110,3 +114,8 @@ clf.fit(train_data, train_labels)
 pred = clf.predict(dev_data)
 reg_score = metrics.f1_score(dev_labels, pred, average="weighted")
 print("Adaboost f1-score is: " + str(reg_score))
+
+prog_end_time = time.time()
+print('All Models Complete')
+prod_total_time = round(end - start, 2)
+print("Total time loading data was: " + str(prod_total_time) + " seconds.")

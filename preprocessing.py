@@ -12,7 +12,7 @@ with open('data/train.csv') as infile, open('data/train_labels.csv', 'w') as out
         outfile.write("\n")
 
 
-# create batching function
+# create batching function: https://stackoverflow.com/questions/8290397/how-to-split-an-iterable-in-constant-size-chunks
 def batch(iterable, n=1):
     l = len(iterable)
     for ndx in range(0, l, n):
@@ -26,8 +26,8 @@ image_files = glob(img_dir + '*.jpg')
 train_labels = np.loadtxt('data/train.csv', delimiter=',', skiprows=1, usecols=0, dtype=str)
 start = time.time()
 count = 0
-dim = 100
-sample_size = 2000
+dim = 50
+
 
 # get data in the order of the labels
 for i_list in batch(train_labels, chunk):
@@ -39,15 +39,18 @@ for i_list in batch(train_labels, chunk):
         # this should be resizing the files to all the same dimensions
         image.thumbnail((dim, 2 * dim))
         im = np.array(image)
+        # if you change the dim value, you will want to update below condition
+        # uncomment this print to view what the most common are. see below for known values
         # print(im.shape[0])
         # limiting to only images that fit shape for now - im.shape[0] seems to be the only that varies
         #  33 for 50, 67 for 100, 134 for 200
-        if im.shape[0] == 67:
+        if im.shape[0] == 33:
+            print(im.shape[0] * im.shape[1] * im.shape[2])
             im = list(im.reshape(im.shape[0] * im.shape[1] * im.shape[2]).tolist())
             # append list as new row to csv
-            with open("train_data.csv", "a+") as f:
+            """with open("data/train_data.csv", "a+") as f:
                 write = csv.writer(f)
-                write.writerow(im)
+                write.writerow(im)"""
         else:
             pass
         # show some sample items
@@ -57,9 +60,6 @@ for i_list in batch(train_labels, chunk):
         if count % 500 == 0:
             print("Completed items: " + str(count))
         image.close()
-    # This limits to a subset of the data to be added to the file
-    if count == sample_size:
-        break
 
 
 end = time.time()

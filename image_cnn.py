@@ -15,7 +15,8 @@ img_width = 180
 CHANNELS = 3  # Keep RGB color channels to match the input format of the model
 BATCH_SIZE = 34  # Big enough to measure an F1-score, a multiple of 18632
 AUTOTUNE = tf.data.experimental.AUTOTUNE  # Adapt preprocessing and prefetching dynamically to reduce GPU and CPU idle time
-epochs = 5
+cat_sample_size = 400
+epochs = 20
 pd.set_option('display.max_columns', None)
 
 data_dir = "./data/train_images/"
@@ -26,12 +27,25 @@ num_classes = len(categories)
 mlb = MultiLabelBinarizer(sparse_output=True)
 
 image_data = pd.read_csv(labels_dir)
+# shuffle data to start
+image_data = image_data.sample(frac=1).reset_index(drop=True)
 image_data['labels'] = image_data['labels'].apply(lambda x: str(x).split(" "))
 image_data = image_data.join(
     pd.DataFrame.sparse.from_spmatrix(
         mlb.fit_transform(image_data.pop('labels')),
         index=image_data.index,
         columns=mlb.classes_))
+
+sample_images = pd.DataFrame()
+for c in categories:
+    df_cat = image_data[image_data[c] == 1]
+    df_images = df_cat[:cat_sample_size]
+    sample_images = sample_images.append(df_images)
+
+# overwrite image_data as the sampled data
+print("number of images sampled:")
+image_data = sample_images.drop_duplicates(subset='image', keep="last")
+print(image_data.shape)
 
 print("viewing data with one hot encoded labels")
 print(image_data.head())
@@ -42,8 +56,6 @@ def get_image(image_file):
     image_decoded = tf.image.decode_jpeg(image_file, channels=CHANNELS)
     # Resize it to fixed shape
     image_resized = tf.image.resize(image_decoded, [img_height, img_width])
-    # Normalize it from [0, 255] to [0.0, 1.0]
-    # image_normalized = image_resized / 255.0
     return image_resized
 
 
@@ -115,24 +127,6 @@ def main():
     print("Number of batches in train: ", ds_train_batched.cardinality().numpy())
     print("Number of batches in test: ", ds_test_batched.cardinality().numpy())
 
-    """base_model = tf.keras.applications.VGG16(
-        weights='imagenet',  # Load weights pre-trained on ImageNet.
-        input_shape=(img_height, img_width, 3),  # VGG16 expects min 32 x 32
-        include_top=False)  # Do not include the ImageNet classifier at the top.
-    base_model.trainable = False
-
-    inputs = tf.keras.Input(shape=(img_height, img_width, 3))
-    x = base_model(inputs, training=False)
-    x = tf.keras.layers.GlobalAveragePooling2D()(x)
-    initializer = tf.keras.initializers.GlorotUniform(seed=42)"""
-
-    activation = tf.keras.activations.sigmoid  # None  # tf.keras.activations.sigmoid or softmax
-
-    """outputs = tf.keras.layers.Dense(num_classes,
-                                    kernel_initializer=initializer,
-                                    activation=activation)(x)
-    model = tf.keras.Model(inputs, outputs)"""
-
     data_augmentation = tf.keras.Sequential(
         [
             layers.RandomFlip("horizontal",
@@ -144,32 +138,57 @@ def main():
         ]
     )
 
+    # including transfer learning
+    # https://www.tensorflow.org/guide/keras/transfer_learning
+    base_model = tf.keras.applications.VGG16(
+        weights='imagenet',  # Load weights pre-trained on ImageNet.
+        input_shape=(img_height, img_width, 3),  # VGG16 expects min 32 x 32
+        include_top=False)  # Do not include the ImageNet classifier at the top.
+    base_model.trainable = False
+
+    inputs = tf.keras.Input(shape=(img_height, img_width, 3))
+    x = data_augmentation(inputs)
+    scale_layer = tf.keras.layers.Rescaling(scale=1 / 127.5, offset=-1)
+    x = scale_layer(x)
+    x = base_model(x, training=False)
+    x = tf.keras.layers.GlobalAveragePooling2D()(x)
+    x = tf.keras.layers.Dropout(0.2)(x)  # Regularize with dropout
+    initializer = tf.keras.initializers.GlorotUniform(seed=42)
+
+    activation = tf.keras.activations.sigmoid  # None  # tf.keras.activations.sigmoid or softmax
+
+    outputs = tf.keras.layers.Dense(num_classes,
+                                    kernel_initializer=initializer,
+                                    activation=activation)(x)
+    model = tf.keras.Model(inputs, outputs)
+
+    """# create model with dropout
     model = Sequential([
         data_augmentation,
         layers.Rescaling(1. / 255),
-        layers.Conv2D(16, 3, padding='same', activation='relu'),
+        layers.Conv2D(16, 3, padding='same', activation=activation),
         layers.MaxPooling2D(),
-        layers.Conv2D(32, 3, padding='same', activation='relu'),
+        layers.Conv2D(32, 3, padding='same', activation=activation),
         layers.MaxPooling2D(),
-        layers.Conv2D(64, 3, padding='same', activation='relu'),
+        layers.Conv2D(64, 3, padding='same', activation=activation),
         layers.MaxPooling2D(),
         layers.Dropout(0.2),
         layers.Flatten(),
         layers.Dense(128, activation=activation),
         layers.Dense(num_classes)
-    ])
+    ])"""
 
     model.compile(optimizer=tf.keras.optimizers.Adam(),
-                  loss=tf.keras.losses.BinaryCrossentropy(),  # default from_logits=False
+                  loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),  # default from_logits=False
                   metrics=[tf.keras.metrics.BinaryAccuracy()])
 
     history = model.fit(ds_train_batched, validation_data=ds_test_batched, epochs=epochs)
 
     ds = ds_test_batched
-    print("Test Accuracy: ", history.evaluate(ds)[1])
+    print("Test Accuracy: ", model.evaluate(ds)[1])
 
-    acc = history.history['accuracy']
-    val_acc = history.history['val_accuracy']
+    acc = history.history['binary_accuracy']
+    val_acc = history.history['val_binary_accuracy']
 
     loss = history.history['loss']
     val_loss = history.history['val_loss']

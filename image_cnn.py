@@ -16,8 +16,9 @@ CHANNELS = 3  # Keep RGB color channels to match the input format of the model
 BATCH_SIZE = 34  # Big enough to measure an F1-score, a multiple of 18632
 AUTOTUNE = tf.data.experimental.AUTOTUNE  # Adapt preprocessing and prefetching dynamically to reduce GPU and CPU idle time
 cat_sample_size = 400
-epochs = 20
+epochs = 3
 pd.set_option('display.max_columns', None)
+base_learning_rate = 0.0001
 
 data_dir = "./data/train_images/"
 labels_dir = "./data/train.csv"
@@ -43,9 +44,7 @@ for c in categories:
     sample_images = sample_images.append(df_images)
 
 # overwrite image_data as the sampled data
-print("number of images sampled:")
 image_data = sample_images.drop_duplicates(subset='image', keep="last")
-print(image_data.shape)
 
 print("viewing data with one hot encoded labels")
 print(image_data.head())
@@ -103,7 +102,6 @@ def show_samples(dataset):
 def main():
     list_ds = tf.convert_to_tensor(image_data['image'])
     image_count = list_ds.shape[0]
-    print("Dataset size: {}".format(list_ds.shape))
     numeric_dataset = tf.data.Dataset.from_tensor_slices(list_ds)
     # shuffle the data
     numeric_dataset = numeric_dataset.shuffle(image_count, reshuffle_each_iteration=False)
@@ -121,8 +119,8 @@ def main():
                           num_parallel_calls=tf.data.AUTOTUNE,
                           deterministic=False)
     # show_samples(ds_test)
-    ds_train_batched = ds_train.batch(BATCH_SIZE).cache().prefetch(tf.data.experimental.AUTOTUNE)
-    ds_test_batched = ds_test.batch(BATCH_SIZE).cache().prefetch(tf.data.experimental.AUTOTUNE)
+    ds_train_batched = ds_train.batch(BATCH_SIZE).cache().prefetch(AUTOTUNE)
+    ds_test_batched = ds_test.batch(BATCH_SIZE).cache().prefetch(AUTOTUNE)
 
     print("Number of batches in train: ", ds_train_batched.cardinality().numpy())
     print("Number of batches in test: ", ds_test_batched.cardinality().numpy())
@@ -140,7 +138,7 @@ def main():
 
     # including transfer learning
     # https://www.tensorflow.org/guide/keras/transfer_learning
-    base_model = tf.keras.applications.VGG16(
+    base_model = tf.keras.applications.VGG16(  # configuration might be updated
         weights='imagenet',  # Load weights pre-trained on ImageNet.
         input_shape=(img_height, img_width, 3),  # VGG16 expects min 32 x 32
         include_top=False)  # Do not include the ImageNet classifier at the top.
@@ -148,35 +146,20 @@ def main():
 
     inputs = tf.keras.Input(shape=(img_height, img_width, 3))
     x = data_augmentation(inputs)
-    scale_layer = tf.keras.layers.Rescaling(scale=1 / 127.5, offset=-1)
+    scale_layer = tf.keras.layers.Rescaling(scale=1./127.5, offset=-1)
     x = scale_layer(x)
     x = base_model(x, training=False)
     x = tf.keras.layers.GlobalAveragePooling2D()(x)
     x = tf.keras.layers.Dropout(0.2)(x)  # Regularize with dropout
-    initializer = tf.keras.initializers.GlorotUniform(seed=42)
+    initializer = tf.keras.initializers.GlorotUniform(seed=42)  # configuration might be updated
 
-    activation = tf.keras.activations.sigmoid  # None  # tf.keras.activations.sigmoid or softmax
+    activation = tf.keras.activations.sigmoid  # None  # tf.keras.activations.sigmoid or softmax # configuration might be updated
 
     outputs = tf.keras.layers.Dense(num_classes,
                                     kernel_initializer=initializer,
                                     activation=activation)(x)
     model = tf.keras.Model(inputs, outputs)
-
-    """# create model with dropout
-    model = Sequential([
-        data_augmentation,
-        layers.Rescaling(1. / 255),
-        layers.Conv2D(16, 3, padding='same', activation=activation),
-        layers.MaxPooling2D(),
-        layers.Conv2D(32, 3, padding='same', activation=activation),
-        layers.MaxPooling2D(),
-        layers.Conv2D(64, 3, padding='same', activation=activation),
-        layers.MaxPooling2D(),
-        layers.Dropout(0.2),
-        layers.Flatten(),
-        layers.Dense(128, activation=activation),
-        layers.Dense(num_classes)
-    ])"""
+    model.summary()
 
     model.compile(optimizer=tf.keras.optimizers.Adam(),
                   loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),  # default from_logits=False
@@ -207,8 +190,9 @@ def main():
     plt.plot(epochs_range, val_loss, label='Validation Loss')
     plt.legend(loc='upper right')
     plt.title('Training and Validation Loss')
-    plt.show()
+    # plt.show()
 
 
 if __name__ == '__main__':
     main()
+

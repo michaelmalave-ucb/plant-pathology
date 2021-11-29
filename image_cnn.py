@@ -10,13 +10,13 @@ from sklearn.model_selection import train_test_split
 from tensorflow.keras.optimizers import RMSprop
 
 
-img_height = 180
-img_width = 180
+img_height = 331  # input shape has to be (331, 331, 3) for NASNetLarge
+img_width = 331
 CHANNELS = 3  # Keep RGB color channels to match the input format of the model
 BATCH_SIZE = 34  # Big enough to measure an F1-score, a multiple of 18632
 AUTOTUNE = tf.data.experimental.AUTOTUNE  # Adapt preprocessing and prefetching dynamically to reduce GPU and CPU idle time
 cat_sample_size = 400
-epochs = 3
+epochs = 13
 pd.set_option('display.max_columns', None)
 base_learning_rate = 0.0001
 
@@ -138,7 +138,7 @@ def main():
 
     # including transfer learning
     # https://www.tensorflow.org/guide/keras/transfer_learning
-    base_model = tf.keras.applications.VGG16(  # configuration might be updated
+    base_model = tf.keras.applications.NASNetLarge(  # configuration might be updated
         weights='imagenet',  # Load weights pre-trained on ImageNet.
         input_shape=(img_height, img_width, 3),  # VGG16 expects min 32 x 32
         include_top=False)  # Do not include the ImageNet classifier at the top.
@@ -153,7 +153,7 @@ def main():
     x = tf.keras.layers.Dropout(0.2)(x)  # Regularize with dropout
     initializer = tf.keras.initializers.GlorotUniform(seed=42)  # configuration might be updated
 
-    activation = tf.keras.activations.sigmoid  # None  # tf.keras.activations.sigmoid or softmax # configuration might be updated
+    activation = tf.keras.activations.softmax  # None  # tf.keras.activations.sigmoid or softmax # configuration might be updated
 
     outputs = tf.keras.layers.Dense(num_classes,
                                     kernel_initializer=initializer,
@@ -190,9 +190,10 @@ def main():
     plt.plot(epochs_range, val_loss, label='Validation Loss')
     plt.legend(loc='upper right')
     plt.title('Training and Validation Loss')
-    # plt.show()
+    plt.show()
 
 
 if __name__ == '__main__':
     main()
+
 

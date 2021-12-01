@@ -4,21 +4,21 @@ import matplotlib.pyplot as plt
 
 import tensorflow as tf
 from tensorflow.keras import layers
-from tensorflow.keras.models import Sequential
 from sklearn.preprocessing import MultiLabelBinarizer
-from sklearn.model_selection import train_test_split
-from tensorflow.keras.optimizers import RMSprop
 
+# tensorflow config
+tf.config.threading.set_inter_op_parallelism_threads(16)
 
-img_height = 180
-img_width = 180
+img_height = 224  # input shape has to be (331, 331, 3) for NASNetLarge
+img_width = 224
 CHANNELS = 3  # Keep RGB color channels to match the input format of the model
-BATCH_SIZE = 34  # Big enough to measure an F1-score, a multiple of 18632
+BATCH_SIZE = 50  # Big enough to measure an F1-score, a multiple of 18632
 AUTOTUNE = tf.data.experimental.AUTOTUNE  # Adapt preprocessing and prefetching dynamically to reduce GPU and CPU idle time
 cat_sample_size = 400
-epochs = 3
+initial_epochs = 13
+fine_tune_epochs = 5
 pd.set_option('display.max_columns', None)
-base_learning_rate = 0.0001
+base_learning_rate = 0.001
 
 data_dir = "./data/train_images/"
 labels_dir = "./data/train.csv"
@@ -45,9 +45,6 @@ for c in categories:
 
 # overwrite image_data as the sampled data
 image_data = sample_images.drop_duplicates(subset='image', keep="last")
-
-print("viewing data with one hot encoded labels")
-print(image_data.head())
 
 
 def get_image(image_file):
@@ -138,7 +135,7 @@ def main():
 
     # including transfer learning
     # https://www.tensorflow.org/guide/keras/transfer_learning
-    base_model = tf.keras.applications.VGG16(  # configuration might be updated
+    base_model = tf.keras.applications.MobileNetV2(  # configuration might be updated
         weights='imagenet',  # Load weights pre-trained on ImageNet.
         input_shape=(img_height, img_width, 3),  # VGG16 expects min 32 x 32
         include_top=False)  # Do not include the ImageNet classifier at the top.
@@ -151,9 +148,9 @@ def main():
     x = base_model(x, training=False)
     x = tf.keras.layers.GlobalAveragePooling2D()(x)
     x = tf.keras.layers.Dropout(0.2)(x)  # Regularize with dropout
-    initializer = tf.keras.initializers.GlorotUniform(seed=42)  # configuration might be updated
+    initializer = tf.keras.initializers.HeUniform(seed=42)  # configuration might be updated
 
-    activation = tf.keras.activations.sigmoid  # None  # tf.keras.activations.sigmoid or softmax # configuration might be updated
+    activation = tf.keras.activations.softmax  # None  # tf.keras.activations.sigmoid or softmax # configuration might be updated
 
     outputs = tf.keras.layers.Dense(num_classes,
                                     kernel_initializer=initializer,
@@ -165,7 +162,7 @@ def main():
                   loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),  # default from_logits=False
                   metrics=[tf.keras.metrics.BinaryAccuracy()])
 
-    history = model.fit(ds_train_batched, validation_data=ds_test_batched, epochs=epochs)
+    history = model.fit(ds_train_batched, validation_data=ds_test_batched, epochs=initial_epochs)
 
     ds = ds_test_batched
     print("Test Accuracy: ", model.evaluate(ds)[1])
@@ -176,7 +173,7 @@ def main():
     loss = history.history['loss']
     val_loss = history.history['val_loss']
 
-    epochs_range = range(epochs)
+    epochs_range = range(initial_epochs)
 
     plt.figure(figsize=(8, 8))
     plt.subplot(1, 2, 1)
@@ -190,7 +187,61 @@ def main():
     plt.plot(epochs_range, val_loss, label='Validation Loss')
     plt.legend(loc='upper right')
     plt.title('Training and Validation Loss')
-    # plt.show()
+    plt.show()
+
+    """# transfer learning - https: // www.tensorflow.org / tutorials / images / transfer_learning
+    # Let's take a look to see how many layers are in the base model
+    print("Number of layers in the base model: ", len(base_model.layers))
+
+    # Fine-tune from this layer onwards
+    fine_tune_at = 100
+
+    # Freeze all the layers before the `fine_tune_at` layer
+    for layer in base_model.layers[:fine_tune_at]:
+        layer.trainable = False
+
+    model.compile(optimizer=tf.keras.optimizers.Adam(),
+                  loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),  # default from_logits=False
+                  metrics=[tf.keras.metrics.BinaryAccuracy()])
+
+    model.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=base_learning_rate / 10),
+                  loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
+                  metrics=[tf.keras.metrics.BinaryAccuracy()])
+    model.summary()
+
+    total_epochs = initial_epochs + fine_tune_epochs
+
+    history_fine = model.fit(ds_train_batched,
+                             epochs=total_epochs,
+                             initial_epoch=history.epoch[-1],
+                             validation_data=ds_test_batched)
+
+    acc += history_fine.history['binary_accuracy']
+    val_acc += history_fine.history['val_binary_accuracy']
+
+    loss += history_fine.history['loss']
+    val_loss += history_fine.history['val_loss']
+
+    plt.figure(figsize=(8, 8))
+    plt.subplot(2, 1, 1)
+    plt.plot(acc, label='Training Accuracy')
+    plt.plot(val_acc, label='Validation Accuracy')
+    plt.ylim([0.8, 1])
+    plt.plot([initial_epochs - 1, initial_epochs - 1],
+             plt.ylim(), label='Start Fine Tuning')
+    plt.legend(loc='lower right')
+    plt.title('Training and Validation Accuracy')
+
+    plt.subplot(2, 1, 2)
+    plt.plot(loss, label='Training Loss')
+    plt.plot(val_loss, label='Validation Loss')
+    plt.ylim([0, 1.0])
+    plt.plot([initial_epochs - 1, initial_epochs - 1],
+             plt.ylim(), label='Start Fine Tuning')
+    plt.legend(loc='upper right')
+    plt.title('Training and Validation Loss')
+    plt.xlabel('epoch')
+    plt.show()"""
 
 
 if __name__ == '__main__':

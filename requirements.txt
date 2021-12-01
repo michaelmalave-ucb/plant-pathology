@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 (base) jovyan@d45aad5df5e9:~/work/plant-pathology$ cat Dockerfile
 ARG BASE_CONTAINER=jupyter/scipy-notebook
 FROM $BASE_CONTAINER
@@ -27,6 +28,8 @@ services:
     volumes:
     - ~/work:/home/jovyan/work
 (base) jovyan@d45aad5df5e9:~/work/plant-pathology$ cat requirements.txt
+=======
+>>>>>>> bea50a970c0e8c469d6ab4fe0b17b741bcea6382
 scikit-multilearn
 tensorflow==2.6.0
 matplotlib==3.3.4

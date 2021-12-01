@@ -1,0 +1,14 @@
+version: "2"
+services:
+  datascience-notebook:
+    build:
+        context: .
+        dockerfile: Dockerfile
+
+    expose:
+    - "7000" # jupyter notebook
+    ports:
+    - "8888:8888"
+    - "7000:7000"
+    volumes:
+    - ~/work:/home/jovyan/work

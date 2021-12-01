@@ -9,14 +9,18 @@ from sklearn.preprocessing import MultiLabelBinarizer
 # tensorflow config
 tf.config.threading.set_inter_op_parallelism_threads(16)
 
+
 img_height = 224  # input shape has to be (331, 331, 3) for NASNetLarge
 img_width = 224
+
 CHANNELS = 3  # Keep RGB color channels to match the input format of the model
 BATCH_SIZE = 50  # Big enough to measure an F1-score, a multiple of 18632
 AUTOTUNE = tf.data.experimental.AUTOTUNE  # Adapt preprocessing and prefetching dynamically to reduce GPU and CPU idle time
 cat_sample_size = 400
+
 initial_epochs = 13
 fine_tune_epochs = 5
+
 pd.set_option('display.max_columns', None)
 base_learning_rate = 0.001
 
@@ -135,6 +139,7 @@ def main():
 
     # including transfer learning
     # https://www.tensorflow.org/guide/keras/transfer_learning
+
     base_model = tf.keras.applications.MobileNetV2(  # configuration might be updated
         weights='imagenet',  # Load weights pre-trained on ImageNet.
         input_shape=(img_height, img_width, 3),  # VGG16 expects min 32 x 32
@@ -188,6 +193,7 @@ def main():
     plt.legend(loc='upper right')
     plt.title('Training and Validation Loss')
     plt.show()
+
 
     """# transfer learning - https: // www.tensorflow.org / tutorials / images / transfer_learning
     # Let's take a look to see how many layers are in the base model
@@ -246,4 +252,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 

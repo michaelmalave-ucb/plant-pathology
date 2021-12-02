@@ -32,7 +32,9 @@ X =pd.read_csv("train_data.csv", delimiter=",").values
 
 
 # get all image names and labels and put into pandas dataframe for further processing
-all_labels = pd.read_csv("data/train_labels_final_single.csv", delimiter=",")
+# explicitly state headers for all six possibilities
+all_labels = pd.read_csv("data/train_labels_final_single.csv",names=["image_name", "col1", "col2", "col3", "col4", "col5", "col6"], delimiter=",")
+print("two header rows", all_labels.head(5))
 
 # empty list where we will turn the label data into binary 0s and 1s to use Binary Relevance
 all_rows = []
@@ -70,7 +72,12 @@ for row in all_labels.itertuples(index=False, name='Labels'):
         each_row.append(1)
     else:
         each_row.append(0)
+    print(row[:])
+    print(each_row)
     all_rows.append(each_row)
+print(all_rows[1])
+# pop the row which is not the old header
+all_rows.pop(1)
 
 
 
@@ -81,7 +88,10 @@ for row in all_labels.itertuples(index=False, name='Labels'):
 # create a pandas dataframe of all binarized label data to prep our expected output
 # data Y
 y = pd.DataFrame(all_rows[1:], columns=all_rows[0])
+
 Y = y[['scab', 'healthy', 'frog_eye_leaf_spot','rust','complex','powdery_mildew']]
+Y.to_csv('out.csv')
+print("Saved out file")
 
 print("Finished loading data")
 end = time.time()

@@ -1,0 +1,38 @@
+<<<<<<< HEAD
+(base) jovyan@d45aad5df5e9:~/work/plant-pathology$ cat Dockerfile
+ARG BASE_CONTAINER=jupyter/scipy-notebook
+FROM $BASE_CONTAINER
+
+LABEL maintainer="Michael Malave <michaelmalave@berkeley.edu>"
+
+# Install Packages
+COPY requirements.txt /tmp/
+RUN pip install --quiet --no-cache-dir \
+    -r /tmp/requirements.txt && \
+    fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
+COPY . /tmp/
+(base) jovyan@d45aad5df5e9:~/work/plant-pathology$ cat docker-compose.yml
+version: "2"
+services:
+  datascience-notebook:
+    build:
+        context: .
+        dockerfile: Dockerfile
+
+    expose:
+    - "7000" # jupyter notebook
+    ports:
+    - "8888:8888"
+    - "7000:7000"
+    volumes:
+    - ~/work:/home/jovyan/work
+(base) jovyan@d45aad5df5e9:~/work/plant-pathology$ cat requirements.txt
+=======
+>>>>>>> bea50a970c0e8c469d6ab4fe0b17b741bcea6382
+scikit-multilearn
+tensorflow==2.6.0
+matplotlib==3.3.4
+scikit-learn==0.24.1
+pandas==1.2.4
+numpy==1.19.5

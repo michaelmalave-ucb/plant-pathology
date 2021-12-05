@@ -13,7 +13,7 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
-from sklearn.metrics import accuracy_score, hamming_loss, classification_report
+from sklearn.metrics import accuracy_score, hamming_loss, classification_report, precision_score, recall_score,f1_score
 from sklearn.model_selection import train_test_split
 
 
@@ -118,7 +118,13 @@ print("Dev label shape", dev_labels.shape)
 print("Ending split of train and dev data")
 
 
+# Result of split. We used up to k of 119 for KNN model due to 119 being
+# square root of 14163
 
+# Train data shape (14163, 20100)
+# Train label shape (14163, 6)
+# Dev data shape (3541, 20100)
+# Dev label shape (3541, 6)
 
 # Produce a KNN model with Problem Transformation using Binary Relevance
 def knn_range_binary(k_values):
@@ -137,13 +143,18 @@ def knn_range_binary(k_values):
         score = accuracy_score(dev_labels, pred_bin)
         print("Accuracy with Binary Relevance and k={k}: {score}".format(k=k, score=score))
 
+        f1 = f1_score(dev_labels, pred_bin, average='micro')
+        print("F1 micro score with Binary Relevance and k={k}: {score}".format(k=k, score=f1))
+
+
         # hamming
         ham = hamming_loss(dev_labels, pred_bin)
         print("Hamming score with Binary Relevance with k={k}: {ham_score}".format(k=k, ham_score=ham))
 
 
 # rule of thumb for k value is square root of number of samples so 112
-k_vals = [1, 3, 5, 7, 9, 20, 30, 40, 50, 60, 70, 80, 90, 100, 112, 120, 122]
+k_vals = [1, 3, 5, 7, 9]
+#k_vals = [1, 3, 5, 7, 9, 20, 30, 40, 50, 60, 70, 80, 90, 100, 112, 120, 122]
 knn_range_binary(k_vals)
 
 # Produce a KNN model with Problem Transformation using Label Powerset
@@ -163,13 +174,17 @@ def knn_range_powerset(k_values):
         score_powerset = accuracy_score(dev_labels, pred_powerset)
         print("Accuracy with Label Powerset and k={k}: {score}".format(k=k, score=score_powerset))
 
+        f1_powerset = f1_score(dev_labels, pred_powerset, average='micro')
+        print("F1 micro score with Powerset and k={k}: {score}".format(k=k, score=f1_powerset))
+
         # hamming
         ham_powerset = hamming_loss(dev_labels, pred_powerset)
         print("Hamming score with Label Powerset with k={k}: {ham_score}".format(k=k, ham_score=ham_powerset))
 
 
 # rule of thumb for k value is square root of number of samples so 112
-k_vals = [1, 3, 5, 7, 9, 20, 30, 40, 50, 60, 70, 80, 90, 100, 112, 120, 122]
+#k_vals = [1, 3, 5, 7, 9, 20, 30, 40, 50, 60, 70, 80, 90, 100, 112, 120, 122]
+k_vals = [1, 3, 5, 7, 9]
 knn_range_powerset(k_vals)
 
 # Produce a KNN model with Problem Transformation using Classifier Chains
@@ -189,11 +204,15 @@ def knn_range_chain(k_values):
         score_chains = accuracy_score(dev_labels, pred_chains)
         print("Accuracy with Classifier Chains and k={k}: {score}".format(k=k, score=score_chains))
 
+        f1_chain = f1_score(dev_labels, pred_chains, average='micro')
+        print("F1 micro score with Classifier Chains and k={k}: {score}".format(k=k, score=f1_chain))
+
         # hamming
         ham_chain = hamming_loss(dev_labels, pred_chains)
         print("Hamming score with Classifier Chains with k={k}: {ham_score}".format(k=k, ham_score=ham_chain))
 
 
 # rule of thumb for k value is square root of number of samples so 112
-k_vals = [1, 3, 5, 7, 9, 20, 30, 40, 50, 60, 70, 80, 90, 100, 112, 120, 122]
+#k_vals = [1, 3, 5, 7, 9, 20, 30, 40, 50, 60, 70, 80, 90, 100, 112, 120, 122]
+k_vals = [1, 3, 5, 7, 9]
 knn_range_chain(k_vals)

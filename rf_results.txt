@@ -1,0 +1,9 @@
+on   2,000: Accuracy: 0.5175
+on   5,000: Accuracy: 0.626 took 22.830240964889526 seconds
+on 531,131: Accuracy: 0.8594142732073766 took 2402.686038017273 seconds
+
+224x224 images
+
+f1 microscore
+
+onevsrestclassifier

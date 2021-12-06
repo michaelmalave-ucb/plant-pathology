@@ -153,7 +153,8 @@ print(x_scaled.shape)
 print(x_scaled[0:10])
 
 # Principal component analysis using scaled data.
-# Landed on n_components 50 after checking for various options and looking at variance capture
+# Landed on n_components 60 or 200 after checking for various options and looking at variance capture.
+# Note, we experimented with both options
 pca = PCA(n_components=200)
 x_pca = pca.fit_transform(x_scaled)
 print ("PCA transform done")

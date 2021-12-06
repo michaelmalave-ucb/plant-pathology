@@ -1,3 +1,5 @@
+# Import all necessary packages and modules
+
 import time
 import numpy as np
 import pandas as pd
@@ -13,16 +15,14 @@ from sklearn.ensemble import AdaBoostClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
-from sklearn.metrics import accuracy_score, hamming_loss, classification_report
+from sklearn.metrics import accuracy_score, hamming_loss, classification_report, precision_score, recall_score,f1_score
 from sklearn.model_selection import train_test_split
 
 
+# Just a timer to see load process
 start = time.time()
 print("Starting loading data")
 
-# this method is a little slower than read_csv so we can remove
-#with open("train_data.csv", 'r') as f:
-  #X = np.genfromtxt(f, delimiter=',')
 
 # Both pandas.DataFrame and pandas.Series have values attribute that returns
 #NumPy array numpy.ndarray. After pandas 0.24.0, it is recommended to use the to_numpy()
@@ -34,7 +34,7 @@ X =pd.read_csv("train_data.csv", delimiter=",").values
 # get all image names and labels and put into pandas dataframe for further processing
 # explicitly state headers for all six possibilities
 all_labels = pd.read_csv("data/train_labels_final_single.csv",names=["image_name", "col1", "col2", "col3", "col4", "col5", "col6"], delimiter=",")
-print("two header rows", all_labels.head(5))
+
 
 # empty list where we will turn the label data into binary 0s and 1s to use Binary Relevance
 all_rows = []
@@ -72,17 +72,12 @@ for row in all_labels.itertuples(index=False, name='Labels'):
         each_row.append(1)
     else:
         each_row.append(0)
-    print(row[:])
-    print(each_row)
+
     all_rows.append(each_row)
-print(all_rows[1])
+
 # pop the row which is not the old header
 all_rows.pop(1)
 
-
-
-# use this code if you want to do single-label
-#Y = np.loadtxt('data/train_labels_final_single.csv', delimiter=',', skiprows=1, usecols=1, dtype=str)
 
 # use this code if you want to do binary Relevance, Label Powerset or Classifier Chain
 # create a pandas dataframe of all binarized label data to prep our expected output
@@ -91,7 +86,9 @@ y = pd.DataFrame(all_rows[1:], columns=all_rows[0])
 
 Y = y[['scab', 'healthy', 'frog_eye_leaf_spot','rust','complex','powdery_mildew']]
 Y.to_csv('out.csv')
-print("Saved out file")
+
+# Print a file to do a sanity check to make sure lables were binarized correctly
+print("Saved sanity check out file to see all labels set to 0,1")
 
 print("Finished loading data")
 end = time.time()
@@ -117,8 +114,34 @@ print("Dev label shape", dev_labels.shape)
 
 print("Ending split of train and dev data")
 
+# Lets see the category distribution in the train and dev sets
+
+print("The number of samples in the train data for each category are as follows:")
 
 
+print("Train data scab counts", (train_labels.scab == 1).sum())
+print("Train data healthy counts", (train_labels.healthy == 1).sum())
+print("Train data frog_eye_leaf_spot counts", (train_labels.frog_eye_leaf_spot == 1).sum())
+print("Train data rust counts", (train_labels.rust == 1).sum())
+print("Train data complex counts", (train_labels.complex == 1).sum())
+print("Train data powdery_mildew counts", (train_labels.powdery_mildew == 1).sum())
+
+print("The number of samples  in the dev data for each category are as follows:")
+print("Dev data scab counts", (dev_labels.scab == 1).sum())
+print("Dev data healthy counts", (dev_labels.healthy == 1).sum())
+print("Dev data frog_eye_leaf_spot counts", (dev_labels.frog_eye_leaf_spot == 1).sum())
+print("Dev data rust counts", (dev_labels.rust == 1).sum())
+print("Dev data complex counts", (dev_labels.complex == 1).sum())
+print("Dev data powdery_mildew counts", (dev_labels.powdery_mildew == 1).sum())
+
+
+# Result of split. We tested up to k of 119 for KNN model due to 119 being
+# square root of 14163
+
+# Train data shape (14163, 20100)
+# Train label shape (14163, 6)
+# Dev data shape (3541, 20100)
+# Dev label shape (3541, 6)
 
 # Produce a KNN model with Problem Transformation using Binary Relevance
 def knn_range_binary(k_values):
@@ -126,74 +149,109 @@ def knn_range_binary(k_values):
         if k == k_values[0]:
             print("Producing models for Binary Relevance where k={k_values}".format(k_values=k_values))
         knn_bin = BinaryRelevance(KNeighborsClassifier(n_neighbors=k))
-        print("Created classifier for Binary Relevance")
+        print("Created classifier for Binary Relevance / KNN")
         knn_bin.fit(train_data, train_labels)
-        print("Fit the classifier for Binary Relevance")
+        print("Fit the classifier for Binary Relevance /KNN")
         # get predictions for dev data to be evaluated
         pred_bin = knn_bin.predict(dev_data)
-        print("Predicted the model for Binary Relevance")
+        print("Predicted the model for Binary Relevance/KNN")
 
-        # get the accuracy scores
+        # get the accuracy scores and hamming
         score = accuracy_score(dev_labels, pred_bin)
-        print("Accuracy with Binary Relevance and k={k}: {score}".format(k=k, score=score))
+        print("Accuracy with Binary Relevance and KNN with k={k}: {score}".format(k=k, score=score))
+
 
         # hamming
         ham = hamming_loss(dev_labels, pred_bin)
-        print("Hamming score with Binary Relevance with k={k}: {ham_score}".format(k=k, ham_score=ham))
+        print("Hamming score with Binary Relevance and KNN with k={k}: {ham_score}".format(k=k, ham_score=ham))
 
+
+        # Getting F1 micro score is better when categories not evenly distributed
+        precision = precision_score(dev_labels, pred_bin, average='micro')
+        recall = recall_score(dev_labels, pred_bin, average='micro')
+        f1 = f1_score(dev_labels, pred_bin, average='micro')
+        print("\nMicro-average quality numbers for Binary Relevance  and KNN with k= ", k)
+        print("Precision: {:.4f}, Recall: {:.4f}, F1-measure: {:.4f}".format(precision, recall, f1))
+
+
+# Tested multiple k values (see below) and then chose to display ones with highest potential
+k_vals = [1, 3, 5, 7, 9]
 
 # rule of thumb for k value is square root of number of samples so 112
-k_vals = [1, 3, 5, 7, 9, 20, 30, 40, 50, 60, 70, 80, 90, 100, 112, 120, 122]
+#k_vals = [1, 3, 5, 7, 9, 20, 30, 40, 50, 60, 70, 80, 90, 100, 112, 120, 122]
 knn_range_binary(k_vals)
 
 # Produce a KNN model with Problem Transformation using Label Powerset
 def knn_range_powerset(k_values):
     for k in k_values:
         if k == k_values[0]:
-            print("Producing models for Label Powerset where k={k_values}".format(k_values=k_values))
+            print("Producing models for Label Powerset and KNN where k={k_values}".format(k_values=k_values))
         knn_powerset = LabelPowerset(KNeighborsClassifier(n_neighbors=k))
-        print("Created classifier for Label Powerset")
+        print("Created classifier for Label Powerset/KNN")
         knn_powerset.fit(train_data, train_labels)
-        print("Fit the classifier for Label Powerset")
+        print("Fit the classifier for Label Powerset/KNN")
         # get predictions for dev data to be evaluated
         pred_powerset = knn_powerset.predict(dev_data)
-        print("Predicted the model for Label Powerset")
+        print("Predicted the model for Label Powerset/KNN")
 
         # get the accuracy scores
         score_powerset = accuracy_score(dev_labels, pred_powerset)
-        print("Accuracy with Label Powerset and k={k}: {score}".format(k=k, score=score_powerset))
+        print("Accuracy with Label Powerset and KNN with k={k}: {score}".format(k=k, score=score_powerset))
+
 
         # hamming
         ham_powerset = hamming_loss(dev_labels, pred_powerset)
-        print("Hamming score with Label Powerset with k={k}: {ham_score}".format(k=k, ham_score=ham_powerset))
+        print("Hamming score with Label Powerset and KNN with k={k}: {ham_score}".format(k=k, ham_score=ham_powerset))
+
+
+        # Getting F1 micro score is better when categories not evenly distributed
+        precision_power = precision_score(dev_labels, pred_powerset, average='micro')
+        recall_power = recall_score(dev_labels, pred_powerset, average='micro')
+        f1_power = f1_score(dev_labels, pred_powerset, average='micro')
+        print("\nMicro-average quality numbers for Label Powerset and KNN with k= ", k)
+        print("Precision: {:.4f}, Recall: {:.4f}, F1-measure: {:.4f}".format(precision_power, recall_power, f1_power))
 
 
 # rule of thumb for k value is square root of number of samples so 112
-k_vals = [1, 3, 5, 7, 9, 20, 30, 40, 50, 60, 70, 80, 90, 100, 112, 120, 122]
+#k_vals = [1, 3, 5, 7, 9, 20, 30, 40, 50, 60, 70, 80, 90, 100, 112, 120, 122]
+
+# Tested multiple k values (see above) and then chose to display ones with highest potential
+k_vals = [1, 3, 5, 7, 9]
 knn_range_powerset(k_vals)
 
 # Produce a KNN model with Problem Transformation using Classifier Chains
 def knn_range_chain(k_values):
     for k in k_values:
         if k == k_values[0]:
-            print("Producing models for Classifier Chains where k={k_values}".format(k_values=k_values))
+            print("Producing models for Classifier Chains and KNN where k={k_values}".format(k_values=k_values))
         knn_chains = ClassifierChain(KNeighborsClassifier(n_neighbors=k))
-        print("Created classifier for Classifier Chains")
+        print("Created classifier for Classifier Chains/KNN")
         knn_chains.fit(train_data, train_labels)
-        print("Fit the classifier for Classifier Chains")
+        print("Fit the classifier for Classifier Chains/KNN")
         # get predictions for dev data to be evaluated
         pred_chains = knn_chains.predict(dev_data)
-        print("Predicted the model for Classifier Chains")
+        print("Predicted the model for Classifier Chains/KNN")
 
         # get the accuracy scores
         score_chains = accuracy_score(dev_labels, pred_chains)
-        print("Accuracy with Classifier Chains and k={k}: {score}".format(k=k, score=score_chains))
+        print("Accuracy with Classifier Chains and KNN with k={k}: {score}".format(k=k, score=score_chains))
+
 
         # hamming
         ham_chain = hamming_loss(dev_labels, pred_chains)
-        print("Hamming score with Classifier Chains with k={k}: {ham_score}".format(k=k, ham_score=ham_chain))
+        print("Hamming score with Classifier Chains and KNN with k={k}: {ham_score}".format(k=k, ham_score=ham_chain))
+
+        # Getting F1 micro score is better when categories not evenly distributed
+        precision_chain = precision_score(dev_labels, pred_chains, average='micro')
+        recall_chain = recall_score(dev_labels, pred_chains, average='micro')
+        f1_chain = f1_score(dev_labels, pred_chains, average='micro')
+        print("\nMicro-average quality numbers for Chain Classifier and KNN with k= ", k)
+        print("Precision: {:.4f}, Recall: {:.4f}, F1-measure: {:.4f}".format(precision_chain, recall_chain, f1_chain))
 
 
 # rule of thumb for k value is square root of number of samples so 112
-k_vals = [1, 3, 5, 7, 9, 20, 30, 40, 50, 60, 70, 80, 90, 100, 112, 120, 122]
+#k_vals = [1, 3, 5, 7, 9, 20, 30, 40, 50, 60, 70, 80, 90, 100, 112, 120, 122]
+
+# Tested multiple k values (see above) and then chose to display ones with highest potential
+k_vals = [1, 3, 5, 7, 9]
 knn_range_chain(k_vals)

@@ -170,8 +170,11 @@ def main():
     history = model.fit(ds_train_batched, validation_data=ds_test_batched, epochs=initial_epochs)
 
     ds = ds_test_batched
-    print("Test Accuracy: ", model.evaluate(ds)[1])
+    test_acc = model.evaluate(ds)[1]
+    print("Test Accuracy: ", test_acc)
 
+
+    """
     acc = history.history['binary_accuracy']
     val_acc = history.history['val_binary_accuracy']
 
@@ -193,6 +196,7 @@ def main():
     plt.legend(loc='upper right')
     plt.title('Training and Validation Loss')
     plt.show()
+    """
 
 
     """# transfer learning - https: // www.tensorflow.org / tutorials / images / transfer_learning

@@ -350,7 +350,7 @@ bin_logreg()
 def power_logreg():
 
     # Create classifer for Label Powerset Logistic Regression Using PCA'd data
-    logreg_power = LabelPowerset(LogisticRegression(C=2.0,solver="liblinear", multi_class="auto", max_iter=25, tol=0.015))
+    logreg_power = LabelPowerset(LogisticRegression(C=0.1,solver="liblinear", multi_class="auto", max_iter=25, tol=0.015))
     print("Created classifier for Label Powerset Logistic Regression")
 
     logreg_power.fit(train_data_pca, train_labels_pca)
@@ -362,11 +362,11 @@ def power_logreg():
 
     # get the accuracy scores
     score_power = accuracy_score(dev_labels_pca, pred_power)
-    print("Accuracy with Label Powerset Logistic Regression and C={c}: {score}".format(c=2.0, score=score_power))
+    print("Accuracy with Label Powerset Logistic Regression and C={c}: {score}".format(c=0.1, score=score_power))
 
     # hamming
     ham_power = hamming_loss(dev_labels_pca, pred_power)
-    print("Hamming score with Label Powerset Logistic Regression with C={c}: {ham_score}".format(c=2.0, ham_score=ham_power))
+    print("Hamming score with Label Powerset Logistic Regression with C={c}: {ham_score}".format(c=0.1, ham_score=ham_power))
 
     precision_power = precision_score(dev_labels_pca, pred_power, average='micro')
     recall_power = recall_score(dev_labels_pca, pred_power, average='micro')

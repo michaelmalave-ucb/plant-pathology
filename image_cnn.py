@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow.keras import layers
 from sklearn.preprocessing import MultiLabelBinarizer
+from tensorflow.keras.models import Sequential, save_model, load_model
 
 # tensorflow config
 tf.config.threading.set_inter_op_parallelism_threads(16)
-
 
 img_height = 224  # input shape has to be (331, 331, 3) for NASNetLarge
 img_width = 224
@@ -26,6 +26,8 @@ pd.set_option('display.max_columns', None)
 
 data_dir = "./data/train_images/"
 labels_dir = "./data/train.csv"
+#labels_dir = "./data/mini_train.csv"
+
 categories = ['complex', 'frog_eye_leaf_spot', 'healthy', 'powdery_mildew', 'rust', 'scab']
 
 num_classes = len(categories)
@@ -191,6 +193,7 @@ def main():
                   metrics=[tf.keras.metrics.BinaryAccuracy()])
                   #metrics = [METRICS])
 
+
     history = model.fit(ds_train_batched, validation_data=ds_test_batched, epochs=initial_epochs)
 
     ds = ds_test_batched
@@ -203,6 +206,12 @@ def main():
     val_loss = history.history['val_loss']
 
     epochs_range = range(initial_epochs)
+
+    # hr added Save the model
+    # because we have a custom layer, saved using working format
+    # https://stackoverflow.com/questions/69955838/saving-model-on-tensorflow-2-7-0-with-data-augmentation-layer
+    model.save("apple_model", save_format='h5')
+    print("model saved")
 
 #hr added different metrics plots
     # true_pos = history.history['tp']

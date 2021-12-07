@@ -29,9 +29,10 @@ def show_elapsed(msg = ''):
 
 show_elapsed('startup')
 
+resize_key = '67_224_224_BL_5'
 # load full mili data set:
-train_data_fname = "train_data.csv"
-train_data_labels_final_fname = "data/train_labels_final_single.csv"
+train_data_fname = f"data/train_data_{resize_key}.csv"
+train_data_labels_final_fname = f"data/train_labels_final_single_{resize_key}.csv"
 
 # # load 5000 row med mili data set:
 # train_data_fname = "train_data_med.csv"

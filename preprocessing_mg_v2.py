@@ -65,7 +65,7 @@ for i_list in batch(train_labels, chunk):
             # Keep these label lines.
             # Use flatten to append as new row
             im2 = im.flatten()
-            print(count, i)
+            # print(count, i)
             # we don't need this we can flatten.
             #im = list(im.reshape(im.shape[0] * im.shape[1] * im.shape[2]).tolist())
 
@@ -84,7 +84,7 @@ for i_list in batch(train_labels, chunk):
         """if count < 5:
             image.show()"""
         # track progress to completion
-        if count % 500 == 0:
+        if count % 10 == 0:
             print("Completed items: " + str(count))
         image.close()
     # This limits to a subset of the data to be added to the file

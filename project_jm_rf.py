@@ -17,7 +17,7 @@ def show_elapsed(msg = ''):
     global start_time
     seconds = end_time-start_time
     print()
-    print("### ", end='')
+    print("###", time.ctime(end_time), ":", end='')
     if (msg):
         print(msg, 'in ', end='')
     else:
@@ -29,10 +29,13 @@ def show_elapsed(msg = ''):
 
 show_elapsed('startup')
 
-resize_key = '67_224_224_BL_5'
+resize_key = '_67_224_224_BL_5'
+resize_key = ''
+
 # load full mili data set:
-train_data_fname = f"data/train_data_{resize_key}.csv"
-train_data_labels_final_fname = f"data/train_labels_final_single_{resize_key}.csv"
+train_data_fname = f"data/train_data{resize_key}.csv"
+#train_data_labels_final_fname        = f"data/train_labels_final_single{resize_key}.csv"
+train_data_labels_final_single_fname = f"data/train_labels_final_single{resize_key}.csv"
 
 # # load 5000 row med mili data set:
 # train_data_fname = "train_data_med.csv"
@@ -49,11 +52,11 @@ X =pd.read_csv(train_data_fname, delimiter=",").values
 
 show_elapsed('loaded')
 
-print("### loading", train_data_labels_final_fname, "...")
+print("### loading", train_data_labels_final_single_fname, "...")
 
 # get all image names and labels and put into pandas dataframe for further processing
 # explicitly state headers for all six possibilities
-all_labels = pd.read_csv(train_data_labels_final_fname,names=["image_name", "col1", "col2", "col3", "col4", "col5", "col6"], delimiter=",")
+all_labels = pd.read_csv(train_data_labels_final_single_fname,names=["image_name", "col1", "col2", "col3", "col4", "col5", "col6"], delimiter=",")
 print("note the two header rows:")
 print(all_labels.head(5))
 
@@ -126,17 +129,19 @@ print("y.shape = ", y.shape)
 
 show_elapsed('built')
 
-# print("### reducing to small X and y for testing ...")
-#
-# small = 1000
-# X = X[:small,:]
+print("### reducing to small X and y for testing ...")
+
+small = 1000
+X = X[:small,:]
 # Y = Y[:small,:]
 # y = y[:small,:]
-# print("X.shape = ", X.shape)
-# print("Y.shape = ", Y.shape)
-# print("y.shape = ", y.shape)
-#
-# show_elapsed('reduced')
+Y = Y.loc[:small-1]
+y = y.loc[:small-1]
+print("X.shape = ", X.shape)
+print("Y.shape = ", Y.shape)
+print("y.shape = ", y.shape)
+
+show_elapsed('reduced')
 
 # # view an image (e.g. 25) and print its corresponding label
 #

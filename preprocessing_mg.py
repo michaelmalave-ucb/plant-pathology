@@ -102,8 +102,8 @@ for i_list in batch(train_labels, chunk):
         """if count < 5:
             image.show()"""
         # track progress to completion
-        if count % 500 == 0:
-            print("Completed items: " + str(count))
+        if count % 10 == 0:
+            print("\lCompleted items: " + str(count), end='')
         image.close()
     # This limits to a subset of the data to be added to the file
     if count == sample_size:

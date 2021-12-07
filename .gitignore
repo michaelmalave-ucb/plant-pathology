@@ -4,3 +4,6 @@ data/*
 train_data.csv
 train_data_med.csv
 train_data_mini.csv
+label_keep.txt
+out.csv
+

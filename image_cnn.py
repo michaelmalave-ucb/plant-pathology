@@ -232,10 +232,12 @@ def main():
     # Store metrics
     test_acc = model.evaluate(ds)[1]
     test_auc = round(model.evaluate(ds)[-1], 4)
+    test_recall = round(model.evaluate(ds)[7], 4)
     loss = history.history['loss']
     val_loss = history.history['val_loss']
     print("Test Accuracy: ", test_acc)
     print("Test AUC Value: ", test_auc)
+    print("Test Recall: ", test_recall)
 
     true_pos = history.history['tp']
     false_pos = history.history['fp']
@@ -246,6 +248,8 @@ def main():
     roc = history.history['roc']
     acc = history.history['accuracy']
     val_acc = history.history['val_accuracy']
+    recall = history.history['recall']
+    print(history.history['loss'])
 
     # %% [code] {"execution":{"iopub.status.busy":"2021-12-09T19:07:49.341902Z","iopub.execute_input":"2021-12-09T19:07:49.342471Z","iopub.status.idle":"2021-12-09T19:07:49.348766Z","shell.execute_reply.started":"2021-12-09T19:07:49.342431Z","shell.execute_reply":"2021-12-09T19:07:49.347689Z"}}
     # Get Model Statistics
@@ -260,41 +264,41 @@ def main():
 
     # %% [code] {"jupyter":{"outputs_hidden":false},"execution":{"iopub.status.busy":"2021-12-09T19:07:49.349975Z","iopub.execute_input":"2021-12-09T19:07:49.350419Z","iopub.status.idle":"2021-12-09T19:07:49.844050Z","shell.execute_reply.started":"2021-12-09T19:07:49.350383Z","shell.execute_reply":"2021-12-09T19:07:49.843374Z"}}
     # plot accuracy, loss, and roc
-    plt.figure(figsize=(16, 16))
-    plt.subplot(3, 1, 1)
-    plt.plot(epochs_range, acc, label='Training Accuracy')
-    plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+    # plot accuracy, loss, and roc
+    plt.figure(figsize=(14, 10))
+    plt.subplot(2, 1, 1)
+    plt.plot(epochs_range, acc, label='Training')
+    plt.plot(epochs_range, val_acc, label='Test')
     plt.legend(loc='center right')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
     plt.title('Training and Validation Accuracy')
 
-    plt.subplot(3, 1, 2)
-    plt.plot(epochs_range, loss, label='Training Loss')
-    plt.plot(epochs_range, val_loss, label='Validation Loss')
+    plt.subplot(2, 1, 2)
+    plt.plot(epochs_range, loss, label='Training')
+    plt.plot(epochs_range, val_loss, label='Test')
     plt.legend(loc='center right')
+    plt.xlabel('Epochs')
+    plt.ylabel('Precision')
     plt.title('Training and Validation Loss')
 
-    plt.subplot(3, 1, 3)
-    plt.plot(epochs_range, auc, label='auc')
-    plt.title('Area Under ROC (AUC) Over Epochs')
-    plt.legend(loc='center right')
-    plt.show()
 
     # %% [code] {"execution":{"iopub.status.busy":"2021-12-09T19:24:38.853894Z","iopub.execute_input":"2021-12-09T19:24:38.854174Z","iopub.status.idle":"2021-12-09T19:24:38.866872Z","shell.execute_reply.started":"2021-12-09T19:24:38.854143Z","shell.execute_reply":"2021-12-09T19:24:38.865925Z"}}
-    accuracy = (tp + tn) / (tp + tn + fp + fn)
-    precision = tp / (tp + fp)
-    recall = tp / (tp + fn)
-    specificity = tp / (tn + fp)
-    misclass = (fp + fn) / (tp + tn + fp + fn)
-    F1 = 2 * (precision * recall) / (precision + recall)
+    plt.figure(figsize=(14, 10))
+    plt.subplot(2, 1, 1)
+    plt.plot(epochs_range, auc, label='auc')
+    plt.title('Area Under ROC (AUC) Over Epochs')
+    plt.xlabel('Epochs')
+    plt.ylabel('AUC')
 
-    print("accuracy: " + str(round(accuracy[-1], 4)))
-    print("precision: " + str(round(precision[-1], 4)))
-    print("recall: " + str(round(recall[-1], 4)))
-    print("specificity: " + str(round(specificity[-1], 4)))
-    print("misclass: " + str(round(misclass[-1], 4)))
-    print("F1: " + str(round(F1[-1], 4)))
-    print("fpr: " + str(round(fpr[-1], 4)))
-    print("fnr: " + str(round(fnr[-1], 4)))
+    plt.subplot(2, 1, 2)
+    plt.plot(epochs_range, recall, label='recall')
+    plt.title('Recall Over Epochs')
+    plt.xlabel('Epochs')
+    plt.ylabel('Recall')
+    plt.show()
+
+
 
     # %% [code]
 

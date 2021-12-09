@@ -18,7 +18,7 @@ BATCH_SIZE = 50  # Big enough to measure an F1-score, a multiple of 18632
 AUTOTUNE = tf.data.experimental.AUTOTUNE  # Adapt preprocessing and prefetching dynamically to reduce GPU and CPU idle time
 cat_sample_size = 400
 
-epochs = 15
+epochs = 20
 
 pd.set_option('display.max_columns', None)
 base_learning_rate = 0.001

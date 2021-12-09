@@ -29,26 +29,19 @@ def show_elapsed(msg = ''):
 
 show_elapsed('startup')
 
-resize_key = '_67_224_224_BL_5'
-resize_key = ''
+resize_key = '71_100_67_BL'
+#resize_key = ''
 
+train_source_dir = f"data/{resize_key}"
 # load full mili data set:
-train_data_fname = f"data/train_data{resize_key}.csv"
+train_data_fname = f"{train_source_dir}/train_data.csv"
 #train_data_labels_final_fname        = f"data/train_labels_final_single{resize_key}.csv"
-train_data_labels_final_single_fname = f"data/train_labels_final_single{resize_key}.csv"
-
-# # load 5000 row med mili data set:
-# train_data_fname = "train_data_med.csv"
-# train_data_labels_final_fname = "data/train_labels_final_single_med.csv"
-
-# # load 1000 row mini mili data set:
-# train_data_fname = "train_data_mini.csv"
-# train_data_labels_final_fname = "data/train_labels_final_single_mini.csv"
+train_data_labels_final_single_fname = f"{train_source_dir}/train_labels_final_single.csv"
 
 print("### loading", train_data_fname, "...")
 
 # load pp dataset
-X =pd.read_csv(train_data_fname, delimiter=",").values
+X =pd.read_csv(train_data_fname, delimiter=",", header=None).values
 
 show_elapsed('loaded')
 
@@ -129,19 +122,19 @@ print("y.shape = ", y.shape)
 
 show_elapsed('built')
 
-print("### reducing to small X and y for testing ...")
-
-small = 1000
-X = X[:small,:]
-# Y = Y[:small,:]
-# y = y[:small,:]
-Y = Y.loc[:small-1]
-y = y.loc[:small-1]
-print("X.shape = ", X.shape)
-print("Y.shape = ", Y.shape)
-print("y.shape = ", y.shape)
-
-show_elapsed('reduced')
+# print("### reducing to small X and y for testing ...")
+#
+# small = 500
+# X = X[:small,:]
+# # Y = Y[:small,:]
+# # y = y[:small,:]
+# Y = Y.loc[:small-1]
+# y = y.loc[:small-1]
+# print("X.shape = ", X.shape)
+# print("Y.shape = ", Y.shape)
+# print("y.shape = ", y.shape)
+#
+# show_elapsed('reduced')
 
 # # view an image (e.g. 25) and print its corresponding label
 #
@@ -156,19 +149,20 @@ show_elapsed('reduced')
 
 print("### shuffle, build clf, and split ...")
 
-X, y = shuffle(X, y, random_state=42)
+# X, y = shuffle(X, y, random_state=42)
 
 clf = RandomForestClassifier()
 print(clf)
 
 RandomForestClassifier(bootstrap=True, class_weight=None, criterion='gini',
-           max_depth=None, max_features='auto', max_leaf_nodes=None,
+           # max_depth=None, max_features='auto', max_leaf_nodes=None,
+           max_depth=None, max_features=5000, max_leaf_nodes=None,
            min_impurity_split=1e-07, min_samples_leaf=1,
            min_samples_split=2, min_weight_fraction_leaf=0.0,
            n_estimators=10, n_jobs=1, oob_score=False, random_state=99,
            verbose=2, warm_start=False)
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
 
 print("X_train.shape = ", X_train.shape)
 print("y_train.shape = ", y_train.shape)

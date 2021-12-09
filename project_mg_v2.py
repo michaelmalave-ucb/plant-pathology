@@ -28,12 +28,19 @@ print("Starting loading data")
 #NumPy array numpy.ndarray. After pandas 0.24.0, it is recommended to use the to_numpy()
 # Here we will read the image fill turned into flattened array into a numpy array
 
-X =pd.read_csv("train_data.csv", delimiter=",").values
+resize_key = '71_100_67_BL'
 
+source_dir = 'data/' + resize_key
+
+train_data_filename = source_dir + '/train_data.csv'
+#X =pd.read_csv("train_data.csv", delimiter=",", header=None).values
+X =pd.read_csv(train_data_filename, delimiter=",", header=None).values
 
 # get all image names and labels and put into pandas dataframe for further processing
 # explicitly state headers for all six possibilities
-all_labels = pd.read_csv("data/train_labels_final_single.csv",names=["image_name", "col1", "col2", "col3", "col4", "col5", "col6"], delimiter=",")
+train_labels_filename = source_dir + '/train_labels_final_single.csv'
+#all_labels = pd.read_csv("data/train_labels_final_single.csv",names=["image_name", "col1", "col2", "col3", "col4", "col5", "col6"], delimiter=",")
+all_labels = pd.read_csv(train_labels_filename, names=["image_name", "col1", "col2", "col3", "col4", "col5", "col6"], delimiter=",")
 
 
 # empty list where we will turn the label data into binary 0s and 1s to use Binary Relevance
@@ -217,7 +224,7 @@ def knn_range_powerset(k_values):
 
 # Tested multiple k values (see above) and then chose to display ones with highest potential
 k_vals = [1, 3, 5, 7, 9]
-knn_range_powerset(k_vals)
+#knn_range_powerset(k_vals)
 
 # Produce a KNN model with Problem Transformation using Classifier Chains
 def knn_range_chain(k_values):
@@ -254,4 +261,4 @@ def knn_range_chain(k_values):
 
 # Tested multiple k values (see above) and then chose to display ones with highest potential
 k_vals = [1, 3, 5, 7, 9]
-knn_range_chain(k_vals)
+#knn_range_chain(k_vals)

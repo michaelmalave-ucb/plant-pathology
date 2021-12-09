@@ -17,15 +17,9 @@ def batch(iterable, n=1):
 # initialize configurations for bathing and ideal size
 chunk = 50
 img_dir = 'data/train_images/'
-image_files = glob(img_dir + '*.jpg')
 
 # get the image file names from the image-name-to-label-name mapping-file called train.csv
 train_labels = np.loadtxt('data/train.csv', delimiter=',', skiprows=1, usecols=0, dtype=str)
-
-# get the labels from the image-name-to-label-mapping file
-# uncomment next line if not using complex labels
-#train_labels_without_complex = pd.read_csv("data/train.csv", delimiter=",")
-
 
 # put the image name files into a pandas dataframe
 train_labels = pd.DataFrame(train_labels, columns = ['image_name'])
@@ -84,24 +78,26 @@ for i_list in batch(train_labels, chunk):
         """if count < 5:
             image.show()"""
         # track progress to completion
-        if count % 10 == 0:
+        if count % 100 == 0:
             print("Completed items: " + str(count))
         image.close()
     # This limits to a subset of the data to be added to the file
-    if count == sample_size:
-        break
+    #if count == sample_size:
+    #    break
 
 
 # write a new file full of labels we will keep
 def writelabels():
 
     # load list of labels I want to keep as a pandas dataframe
-    label_list = pd.read_csv('label_keep.txt')
+    label_list = pd.read_csv('label_keep.txt', header=None)
+    print(label_list.shape)
 
     label_list = label_list.iloc[:, 0]. tolist()
 
     # now load the full image-name-to-label mapping file
     full_labels = pd.read_csv('data/train.csv')
+    print(full_labels.shape)
     # create a pandas dataframe for full image-name-to-label mapping file
     data = pd.DataFrame(full_labels)
     # keep only the rows from the full dataframe where the first column equals the

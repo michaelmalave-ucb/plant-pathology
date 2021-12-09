@@ -10,34 +10,35 @@ from natsort import os_sorted
 
 start = time.time()
 
-# number of images to preprocess. default (image_limit=0) is to preprocess all training images.
-# set image_limit > 0 to preprocess and generate metadata files for only the first <image_limit> images.
-image_limit = 0
-
 # batch loader chunk size
 chunk = 50
 
-# image preprocessing parameters:
-# raw images are first center-cropped, and then resized to the target (processed) image size.
-# the centered crop box has the same aspect ratio as the target.
-# for each raw image, the crop box is initially scaled up to maximize coverage of the raw image, limited by
-# image height and/or width.
-# if crop_box_scale < 100, the crop box is then scaled down to <crop_box_scale>% of its initial value.
-# e.g., if crop_box_scale=50, the crop box height and width are halved and cover only 25% of the pixels of
-# the original crop box (remaining centered on the raw image).
-# the cropped image is then resized to the target image size. with
+""" Image Preprocessing Parameters
+
+raw images are first center-cropped, and then resized to the target (processed) image size.
+the centered crop box has the same aspect ratio as the target.
+for each raw image, the crop box is initially scaled up to maximize coverage of the raw image, limited by
+image height and/or width.
+if crop_box_scale < 100, the crop box is then scaled down to <crop_box_scale>% of its initial value.
+e.g., if crop_box_scale=50, the crop box height and width are halved and cover only 25% of the pixels of
+the original crop box (remaining centered on the raw image).
+the cropped image is then resized to the target image size.
+"""
 
 # target image size
 # target_width = 100          # mili's original 100x67
 # target_height = 67
 
-target_width = 224
-target_height = 224
-crop_box_scale = 67         # use 25% of the maximum crop box area
+target_width = 100
+target_height = 67
+crop_box_scale = 71         # use 25% of the maximum crop box area
 resample_filter = Image.BILINEAR     # resize to target size with the PIl.Image.BILINEAR filter
 use_label_directories = True
+image_limit = 0       # number images to process (if 0, process all iamges)
 
-if resample_filter == None:
+""" Calculate unique key for these parameter selections. """
+
+if resample_filter is None:
     resample_filter_key = None
     resample_filter_name = "NO"
 elif resample_filter == Image.BILINEAR:
@@ -45,17 +46,18 @@ elif resample_filter == Image.BILINEAR:
     resample_filter_name = "bilinear"
 else:
     raise ValueError(f"unrecognized resample_filter_key: '{resample_filter}'")
-by_labels_key = '_by_labels' if use_label_directories else ''
-resize_key = f"{crop_box_scale}_{target_width}_{target_height}_{resample_filter_key}"
+image_limit_key = f"_{image_limit}" if image_limit > 0 else ""
+resize_key = f"{crop_box_scale}_{target_width}_{target_height}_{resample_filter_key}{image_limit_key}"
 
-image_source_dir = 'data/train_images'
-image_dest_dir = f"data/train_images_{resize_key}"
+""" Get directory and file paths (names). """
 
-if not os.path.exists(image_dest_dir):
-    os.makedirs(image_dest_dir)
-    print("Created new output directory:", image_dest_dir)
+train_source_dir = "data"
+train_dest_dir = f"data/{resize_key}"
+if not os.path.exists(train_dest_dir):
+    os.makedirs(train_dest_dir)
+    print("Created new output directory:", train_dest_dir)
 else:
-    print("Reusing existing output directory:", image_dest_dir)
+    print("Reusing existing output directory:", train_dest_dir)
 
 # create batching function
 def batch(iterable, n=1):
@@ -64,10 +66,7 @@ def batch(iterable, n=1):
         yield iterable[ndx:min(ndx + n, l)]
 
 # get the image file names from the image-name-to-label-name mapping-file called train.csv
-train_images = np.loadtxt('data/train.csv', delimiter=',', skiprows=1, usecols=0, dtype=str)
-# reorder train_labels to match the OS's name ordering, e.g., so train_labels is same order as MacOS finder order
-#### train_labels = np.array(os_sorted(train_labels))
-#### train_labels = os_sorted(train_labels)
+train_images = np.loadtxt(f"{train_source_dir}/train.csv", delimiter=',', skiprows=1, usecols=0, dtype=str)
 
 # put the image name files into a pandas dataframe
 train_images = pd.DataFrame(train_images, columns = ['image_name'])
@@ -77,33 +76,35 @@ train_images_column = train_images.iloc[:,0]
 train_images = train_images_column.values
 
 # get the image labels
-train_labels = np.loadtxt('data/train.csv', delimiter=',', skiprows=1, usecols=1, dtype=str)
+train_labels = np.loadtxt(f"{train_source_dir}/train.csv", delimiter=',', skiprows=1, usecols=1, dtype=str)
 train_labels = pd.DataFrame(train_labels, columns = ['label'])
 train_labels_column = train_labels.iloc[:,0]
 train_labels = train_labels_column.values
 
-train_data_csv_filename = f"data/train_data_{resize_key}.csv"
+train_data_csv_filename = f"{train_dest_dir}/train_data.csv"
 train_data_csv_fp = open(train_data_csv_filename, "w")
 train_data_csv_writer = csv.writer(train_data_csv_fp)
 
-train_images_csv_filename = f"data/train_images_{resize_key}.csv"
-train_images_csv_fp = open(train_images_csv_filename, "a")
+train_images_csv_filename = f"{train_dest_dir}/train_images.csv"
+train_images_csv_fp = open(train_images_csv_filename, "w")
 
 image_cnt = image_limit if image_limit > 0 else train_images.shape[0]
 
-print(f"Converting {image_cnt} raw images from {image_source_dir}:")
+print(f"Converting {image_cnt} raw images from {train_source_dir}/train_images/:")
 print(f" center cropped to {crop_box_scale}% of the largest possible bounding box matching the target's aspect ratio,")
 print(f" resized to {target_width}x{target_height} using {resample_filter_name} resampling,")
+if image_limit > 0:
+    print(" limited to first {image_limit} images,")
 if use_label_directories:
     print(f" grouped by labels into subdirectories,")
-print(f" and written to {image_dest_dir}:")
+print(f" and written to {train_dest_dir}/train_images/:")
 
 count = 0
 # get data in the order of the labels
 for i_list, l_list in zip(batch(train_images, chunk), batch(train_labels, chunk)):
     for image_filename, labels in zip(i_list, l_list):
         count += 1
-        raw_image_filename = f"{image_source_dir}/{image_filename}"
+        raw_image_filename = f"{train_source_dir}/train_images/{image_filename}"
         image = Image.open(raw_image_filename)
 
         # calculate crop box for target size within this image
@@ -119,18 +120,15 @@ for i_list, l_list in zip(batch(train_images, chunk), batch(train_labels, chunk)
         crop_box = (half_width-half_crop_width, half_height-half_crop_height, half_width+half_crop_width, half_height+half_crop_height)
         image_resized = image.resize((target_width, target_height), box=crop_box, resample=resample_filter)
 
-        sorted_image_dest_dir = image_dest_dir
+        sorted_train_dest_dir = f"{train_dest_dir}/train_images"
         if use_label_directories:
-            # labels = labels.replace('complex', 'c').replace('frog_eye_leaf_spot', 'fels')
-            # labels = labels.replace('healthy', 'h').replace('powdery_mildew', 'pm')
-            # labels = labels.replace('rust', 'r').replace('scab', 's')
             labels = labels.replace(' ', '__') + '__'
-            sorted_image_dest_dir = f"{image_dest_dir}/{labels}"
-            if not os.path.exists(sorted_image_dest_dir):
-                os.makedirs(sorted_image_dest_dir)
-                #print("Created new output directory:", image_dest_dir)
-        target_image_filename = f"{sorted_image_dest_dir}/{image_filename}"
+            sorted_train_dest_dir = f"{sorted_train_dest_dir}/{labels}"
+            if not os.path.exists(sorted_train_dest_dir):
+                os.makedirs(sorted_train_dest_dir)
+                #print("Created new output directory:", sorted_train_dest_dir)
 
+        target_image_filename = f"{sorted_train_dest_dir}/{image_filename}"
         image_resized.save(target_image_filename)
 
         im = np.array(image_resized)
@@ -140,7 +138,7 @@ for i_list, l_list in zip(batch(train_images, chunk), batch(train_labels, chunk)
         image.close()
         image_resized.close()
 
-        if count % 5 == 0:
+        if count % 100 == 0:
             print(f"\rConverted {count} images...", end='')
         if count == image_limit:
             break
@@ -170,12 +168,12 @@ def writelabels():
 
     # save a csv file which contains only the corresponding labels for the image files
     # we decided to keep
-    data.to_csv(f"data/train_labels_final_{resize_key}.csv", index=False)
+    data.to_csv(f"{train_dest_dir}/train_labels_final.csv", index=False)
     print(len(label_list))
 
     # handle space delimited labels by splitting label file when there are multiple labels
 
-    with open(f"data/train_labels_final_{resize_key}.csv") as infile, open(f"data/train_labels_final_single_{resize_key}.csv", 'w') as outfile_two:
+    with open(f"{train_dest_dir}/train_labels_final.csv") as infile, open(f"{train_dest_dir}/train_labels_final_single.csv", 'w') as outfile_two:
         for line in infile:
             outfile_two.write(" ".join(line.split()).replace(' ', ','))
             outfile_two.write("\n")
@@ -189,3 +187,4 @@ end = time.time()
 print('Process Complete')
 total_time = round(end - start, 2)
 print("Total time was: " + str(total_time) + " seconds.")
+pass

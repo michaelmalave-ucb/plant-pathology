@@ -6,4 +6,5 @@ train_data_med.csv
 train_data_mini.csv
 label_keep.txt
 out.csv
-
+mg_v2_7pmish.txt
+old-format-data/*

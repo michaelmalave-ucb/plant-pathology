@@ -30,7 +30,7 @@ CHANNELS = 3  # Keep RGB color channels to match the input format of the model
 BATCH_SIZE = 50
 AUTOTUNE = tf.data.experimental.AUTOTUNE  # Adapt preprocessing and prefetching dynamically to reduce GPU and CPU idle time
 cat_sample_size = 400
-epochs = 19
+epochs = 30
 pd.set_option('display.max_columns', None)
 
 # %% [code] {"jupyter":{"outputs_hidden":false},"execution":{"iopub.status.busy":"2021-12-09T18:54:16.003492Z","iopub.execute_input":"2021-12-09T18:54:16.004050Z","iopub.status.idle":"2021-12-09T18:54:16.010770Z","shell.execute_reply.started":"2021-12-09T18:54:16.004014Z","shell.execute_reply":"2021-12-09T18:54:16.009997Z"}}
@@ -298,11 +298,8 @@ def main():
     plt.ylabel('Recall')
     plt.show()
 
-
-
     # %% [code]
 
 
 if __name__ == '__main__':
     main()
-

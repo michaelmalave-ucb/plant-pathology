@@ -18,8 +18,7 @@ BATCH_SIZE = 50  # Big enough to measure an F1-score, a multiple of 18632
 AUTOTUNE = tf.data.experimental.AUTOTUNE  # Adapt preprocessing and prefetching dynamically to reduce GPU and CPU idle time
 cat_sample_size = 400
 
-initial_epochs = 13
-fine_tune_epochs = 5
+epochs = 15
 
 pd.set_option('display.max_columns', None)
 base_learning_rate = 0.001
@@ -119,7 +118,7 @@ def main():
                                                    inp=[x], Tout=(tf.float32, tf.int64)),
                           num_parallel_calls=tf.data.AUTOTUNE,
                           deterministic=False)
-    # show_samples(ds_test)
+
     ds_train_batched = ds_train.batch(BATCH_SIZE).cache().prefetch(AUTOTUNE)
     ds_test_batched = ds_test.batch(BATCH_SIZE).cache().prefetch(AUTOTUNE)
 
@@ -134,6 +133,8 @@ def main():
                                            3)),
             layers.RandomRotation(0.1),
             layers.RandomZoom(0.1),
+            layers.RandomContrast(0.2),
+
         ]
     )
 
@@ -148,9 +149,10 @@ def main():
 
     inputs = tf.keras.Input(shape=(img_height, img_width, 3))
     x = data_augmentation(inputs)
-    scale_layer = tf.keras.layers.Rescaling(scale=1./127.5, offset=-1)
+    x = tf.keras.layers.GaussianNoise(0.2)(x)
+    scale_layer = tf.keras.layers.Rescaling(scale=1. / 127.5, offset=-1)
     x = scale_layer(x)
-    x = base_model(x, training=False)
+    x = base_model(x, training=True)
     x = tf.keras.layers.GlobalAveragePooling2D()(x)
     x = tf.keras.layers.Dropout(0.2)(x)  # Regularize with dropout
     initializer = tf.keras.initializers.HeUniform(seed=42)  # configuration might be updated
@@ -160,98 +162,95 @@ def main():
     outputs = tf.keras.layers.Dense(num_classes,
                                     kernel_initializer=initializer,
                                     activation=activation)(x)
-    model = tf.keras.Model(inputs, outputs)
-    model.summary()
 
+    METRICS = [
+        tf.keras.metrics.BinaryAccuracy(name='accuracy'),
+        tf.keras.metrics.TruePositives(name='tp'),
+        tf.keras.metrics.FalsePositives(name='fp'),
+        tf.keras.metrics.TrueNegatives(name='tn'),
+        tf.keras.metrics.FalseNegatives(name='fn'),
+        tf.keras.metrics.Precision(name='precision'),
+        tf.keras.metrics.Recall(name='recall'),
+        tf.keras.metrics.AUC(name='auc'),
+        tf.keras.metrics.AUC(name='prc', curve='PR'),  # precision-recall curve
+        tf.keras.metrics.AUC(
+            num_thresholds=200, curve='ROC',
+            summation_method='interpolation', name='roc', dtype=None,
+            thresholds=None, multi_label=True, num_labels=num_classes, label_weights=None,
+            from_logits=True
+        )
+    ]
+
+    model = tf.keras.Model(inputs, outputs)
     model.compile(optimizer=tf.keras.optimizers.Adam(),
                   loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),  # default from_logits=False
-                  metrics=[tf.keras.metrics.BinaryAccuracy()])
+                  metrics=[METRICS])
+    history = model.fit(ds_train_batched, validation_data=ds_test_batched, epochs=epochs)
 
-    history = model.fit(ds_train_batched, validation_data=ds_test_batched, epochs=initial_epochs)
+    model.summary()
 
     ds = ds_test_batched
-    test_acc = model.evaluate(ds)[1]
-    print("Test Accuracy: ", test_acc)
-
-
-    """
-    acc = history.history['binary_accuracy']
-    val_acc = history.history['val_binary_accuracy']
-
+    epochs_range = range(epochs)
+    # Store metrics
+    test_acc = round(model.evaluate(ds)[1], 4)
+    test_auc = round(model.evaluate(ds)[-1], 4)
     loss = history.history['loss']
     val_loss = history.history['val_loss']
+    print("Test Accuracy: ", test_acc)
+    print("Test AUC Value: ", test_auc)
 
-    epochs_range = range(initial_epochs)
+    true_pos = history.history['tp']
+    false_pos = history.history['fp']
+    true_neg = history.history['tn']
+    false_neg = history.history['fn']
+    auc = history.history['auc']
+    prc = history.history['prc']
+    roc = history.history['roc']
+    acc = history.history['accuracy']
+    val_acc = history.history['val_accuracy']
 
-    plt.figure(figsize=(8, 8))
-    plt.subplot(1, 2, 1)
+    # Get Model Statistics
+    # calculations based off https://developers.google.com/machine-learning/crash-course/classification/roc-and-auc
+    tp = np.array(history.history['tp'])
+    fp = np.array(history.history['fp'])
+    tn = np.array(history.history['tn'])
+    fn = np.array(history.history['fn'])
+    tpr = tp / (tp + fn)
+    fpr = fp / (fp + tn)
+
+    # plot accuracy, loss, and roc
+    plt.figure(figsize=(16, 16))
+    plt.subplot(3, 1, 1)
     plt.plot(epochs_range, acc, label='Training Accuracy')
     plt.plot(epochs_range, val_acc, label='Validation Accuracy')
     plt.legend(loc='lower right')
     plt.title('Training and Validation Accuracy')
 
-    plt.subplot(1, 2, 2)
+    plt.subplot(3, 1, 2)
     plt.plot(epochs_range, loss, label='Training Loss')
     plt.plot(epochs_range, val_loss, label='Validation Loss')
     plt.legend(loc='upper right')
     plt.title('Training and Validation Loss')
-    plt.show()
-    """
 
-
-    """# transfer learning - https: // www.tensorflow.org / tutorials / images / transfer_learning
-    # Let's take a look to see how many layers are in the base model
-    print("Number of layers in the base model: ", len(base_model.layers))
-
-    # Fine-tune from this layer onwards
-    fine_tune_at = 100
-
-    # Freeze all the layers before the `fine_tune_at` layer
-    for layer in base_model.layers[:fine_tune_at]:
-        layer.trainable = False
-
-    model.compile(optimizer=tf.keras.optimizers.Adam(),
-                  loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),  # default from_logits=False
-                  metrics=[tf.keras.metrics.BinaryAccuracy()])
-
-    model.compile(optimizer=tf.keras.optimizers.RMSprop(learning_rate=base_learning_rate / 10),
-                  loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
-                  metrics=[tf.keras.metrics.BinaryAccuracy()])
-    model.summary()
-
-    total_epochs = initial_epochs + fine_tune_epochs
-
-    history_fine = model.fit(ds_train_batched,
-                             epochs=total_epochs,
-                             initial_epoch=history.epoch[-1],
-                             validation_data=ds_test_batched)
-
-    acc += history_fine.history['binary_accuracy']
-    val_acc += history_fine.history['val_binary_accuracy']
-
-    loss += history_fine.history['loss']
-    val_loss += history_fine.history['val_loss']
-
-    plt.figure(figsize=(8, 8))
-    plt.subplot(2, 1, 1)
-    plt.plot(acc, label='Training Accuracy')
-    plt.plot(val_acc, label='Validation Accuracy')
-    plt.ylim([0.8, 1])
-    plt.plot([initial_epochs - 1, initial_epochs - 1],
-             plt.ylim(), label='Start Fine Tuning')
-    plt.legend(loc='lower right')
-    plt.title('Training and Validation Accuracy')
-
-    plt.subplot(2, 1, 2)
-    plt.plot(loss, label='Training Loss')
-    plt.plot(val_loss, label='Validation Loss')
-    plt.ylim([0, 1.0])
-    plt.plot([initial_epochs - 1, initial_epochs - 1],
-             plt.ylim(), label='Start Fine Tuning')
+    plt.subplot(3, 1, 3)
+    plt.plot(epochs_range, auc, label='auc')
+    plt.title('Area Under ROC (AUC) Over Epochs')
     plt.legend(loc='upper right')
-    plt.title('Training and Validation Loss')
-    plt.xlabel('epoch')
-    plt.show()"""
+    plt.show()
+
+    accuracy = (tp + tn) / (tp + tn + fp + fn)
+    precision = tp / (tp + fp)
+    recall = tp / (tp + fn)
+    specificity = tp / (tn + fp)
+    misclass = (fp + fn) / (tp + tn + fp + fn)
+    F1 = 2 * [(precision * recall) / (precision + recall)][-1]
+
+    print("accuracy: " + str(round(accuracy[-1], 4)))
+    print("precision: " + str(round(precision[-1], 4)))
+    print("recall: " + str(round(recall[-1], 4)))
+    print("specificity: " + str(round(specificity[-1], 4)))
+    print("misclass: " + str(round(misclass[-1], 4)))
+    print("F1: " + str(round(F1[-1], 4)))
 
 
 if __name__ == '__main__':

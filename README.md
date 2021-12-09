@@ -31,6 +31,3 @@
 > * To run the KNN and Logistic Regression models, first run the file called "preprocessing_mg_v2.py". 
 > * To run the KNN models, please run the file called project_mg_v2.py.
 > * To run the Logistic Regression models, please run the file called project_mg_logreg.py.
-
-
-
